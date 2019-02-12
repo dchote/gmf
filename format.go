@@ -244,6 +244,31 @@ func (this *FmtCtx) OpenInput(filename string) error {
 	return nil
 }
 
+func (this *FmtCtx) OpenInputWithOptions(filename string, options []Pair) error {
+	var (
+		cfilename *_Ctype_char
+	)
+
+	optionsDict := NewDict(options)
+
+	if filename == "" {
+		cfilename = nil
+	} else {
+		cfilename = C.CString(filename)
+		defer C.free(unsafe.Pointer(cfilename))
+	}
+
+	if averr := C.avformat_open_input(&this.avCtx, cfilename, nil, &optionsDict.avDict); averr < 0 {
+		return errors.New(fmt.Sprintf("Error opening input '%s': %s", filename, AvError(int(averr))))
+	}
+
+	if averr := C.avformat_find_stream_info(this.avCtx, nil); averr < 0 {
+		return errors.New(fmt.Sprintf("Unable to find stream info: %s", AvError(int(averr))))
+	}
+
+	return nil
+}
+
 func (this *FmtCtx) AddStreamWithCodeCtx(codeCtx *CodecCtx) (*Stream, error) {
 	var ost *Stream
 
